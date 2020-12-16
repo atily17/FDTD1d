@@ -14,7 +14,6 @@ solver.setBorder("absorb", "absorb")
 solver.calc()
 
 graph = Graph.SpaceGraph(solver)
-graph.plot(0, bSave=True)
 graph.animate(intervl=50)
 
 graph = Graph.FourierGraph(solver)
