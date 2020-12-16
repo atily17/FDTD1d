@@ -4,7 +4,6 @@ from scipy import constants
 class Medium:
     def __init__(self):
         self.setMediumInit()
-        self.sgm = 0
         self.left = 0
         self.right = 0
 
@@ -13,8 +12,9 @@ class Medium:
         self.right=right
 
     def setMediumInit(self):
-        self.eps = constants.epsilon0
-        self.mu = constants.mu0
+        self.eps = constants.epsilon_0
+        self.mu = constants.mu_0
+        self.sgm = 0
 
     def setMedium(self, reps, rmu, sgm):
         self.setMediumInit()
@@ -32,8 +32,8 @@ class YeeGrid:
         self.e_element = np.array([])
         self.h_element = np.array([])
 
-    def setGrid(self, d, N, ratio=0.99):
-        self.domain = d
+    def setGrid(self, domain, N, ratio=0.99):
+        self.domain = domain
         self.n = N
         self.dz = self.domain/self.n
         self.e_element=np.linspace(0,self.domain, N+1)

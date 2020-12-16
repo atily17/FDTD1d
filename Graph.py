@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as anm
 import numpy as np
 import os
+import matplotlib.patches as patches
+
 
 EYmax =  1
 EYmin = -1
@@ -40,7 +42,15 @@ class SpaceGraph:
         self.ax2.plot(self.grid.h_element,H, label="H",color="magenta")
         handler1, label1 = self.ax1.get_legend_handles_labels()
         handler2, label2 = self.ax2.get_legend_handles_labels()
-        self.ax1.legend(handler1 + handler2, label1 + label2,  borderaxespad=0.)
+        self.ax1.legend(handler1 + handler2, label1 + label2,  borderaxespad=0.,  loc='upper right')
+
+        for medium in self.grid.mediums:
+            r = medium.right
+            l = medium.left
+            rect = patches.Rectangle(xy=(l, EYmin), width=r-l, height=EYmax-EYmin, color='b', alpha = 0.3)
+            self.ax1.add_patch(rect)
+
+
         if bShow:
             self.fig.show()
         if bSave:
@@ -52,8 +62,8 @@ class SpaceGraph:
         self.plot(i, bShow=False,bCla=True, bClose=False)
         
 
-    def animate(self):
-        ani = anm.FuncAnimation(self.fig, self.update,  interval = 50, frames = self.N)
+    def animate(self, intervl=50):
+        ani = anm.FuncAnimation(self.fig, self.update,  interval = 20, frames = self.N)
         ani.save(self.oDirectory+"\\animation.gif", writer = 'imagemagick')
         plt.close(self.fig)
         

@@ -9,7 +9,7 @@ class BoundaryCond(Enum):
 
 class Pulse:
     def __init__(self):
-        self.w = 100e-9
+        self.w = 100e-12
         self.threshold = 4
         self.E = 1
 
@@ -19,9 +19,8 @@ class Pulse:
         eps0 = constants.epsilon_0
         impedance = np.sqrt(mu0/eps0)
         z0 = c*self.w*self.threshold+2*grid.dz
-        taues = -(grid.e_element-z0)/c
-        tauhs = -grid.dt/2 - (grid.h_element-z0)/c
-
+        taues = (grid.e_element-z0)/c
+        tauhs = grid.dt/2 + (grid.h_element-z0)/c
         return {"E": self.E*self._gaussian(taues, self.w), "H":self.E/impedance*self._gaussian(tauhs, self.w)}
 
     def _gaussian(self, taus, w):
@@ -51,7 +50,7 @@ class Solver:
         self.directory = directory
         self.padding = 6
         self.makeDirectory()
-        self.setFourier(10e6, 10e9, 90)
+        self.setFourier(10e6, 10e9, 150)
         self.addObserve(0.5)
         self.check = 10
 
@@ -100,14 +99,14 @@ class Solver:
         self.time = 0
         self.calcFourier()
         for t in range(1, self.NTime+1):
-            self.next(t)
+            self.nextstep(t)
             self.save(t)            
             if t % 10 == 0:
                 print("iter="+str(t)+", ", end="")
                 if self.judgeConvergence(bPrint=True):
                     break
 
-    def next(self, t):
+    def nextstep(self, t):
         preE = self.E.copy()
         preH = self.H.copy()
         self.calcH()
@@ -115,9 +114,9 @@ class Solver:
         self.htimes.append(self.time)
         self.calcFourier("H")
         self.calcE()
+        self.calcBorder(preE)
         self.time += self.grid.dt/2
         self.etimes.append(self.time)
-        self.calcBorder(preE)
         self.calcFourier("E")
             
     def calcInit(self):
@@ -174,7 +173,7 @@ class Solver:
         conv = eave/emax
         bConvergence = conv < cc
         if bPrint:
-            print("time="+str(self.time)+", max/norm="+str(conv))
+            print("time="+str(self.time)+", ave/max="+str(conv))
         return bConvergence
 
     def print(self):
