@@ -2,6 +2,7 @@ from enum import Enum
 import numpy as np
 from scipy import constants
 import os
+import glob
 
 class BoundaryCond(Enum):
     ABSORB = 1
@@ -38,7 +39,8 @@ class Solver:
         self.grid = grid
         self.E = np.zeros(len(self.grid.e_element))
         self.H = np.zeros(len(self.grid.h_element))
-        self.NTime = 10000
+        self.NTime = 1000000
+        self.output_iter=1000
         self.properties = self.grid.getMediumsProperty()
         self.time = 0
         self.etimes = [0]
@@ -50,14 +52,22 @@ class Solver:
         self.directory = directory
         self.padding = 6
         self.makeDirectory()
-        self.setFourier(10e6, 10e9, 150)
-        self.addObserve(0.5)
-        self.check = 10
+        self.setFourier(1e7, 1e10, 150)
+        self.check = 100
+        self.cc=1e-3
 
     def makeDirectory(self):
         os.makedirs(self.directory, exist_ok=True)
-        os.makedirs(self.directory + "\\E", exist_ok=True)
-        os.makedirs(self.directory + "\\H", exist_ok=True)
+        edir = os.path.join(self.directory, "E")
+        hdir = os.path.join(self.directory, "H")
+        for p in glob.glob(os.path.join(edir, "[0-9]"*self.padding + ".npy")):
+            if os.path.isfile(p):
+                os.remove(p)
+        for p in glob.glob(os.path.join(hdir, "[0-9]"*self.padding + ".npy")):
+            if os.path.isfile(p):
+                os.remove(p)
+        os.makedirs(edir, exist_ok=True)
+        os.makedirs(hdir, exist_ok=True)
 
     def save(self, n):
         filename = str(n).rjust(self.padding, "0")
@@ -87,8 +97,8 @@ class Solver:
         eidx = (np.abs(self.grid.e_element - z)).argmin()
         hidx = (np.abs(self.grid.h_element - z)).argmin()
         if name=="":
-            name="observe"+str(len(self.observes))
-        idx = {"E": eidx, "H": hidx, "name": name}
+            name="z={d:.3e}".format(d=self.grid.e_element[eidx])
+        idx = {"E": eidx, "H": hidx, "name": name, "z":self.grid.e_element[eidx]}
         self.observes.append(idx)
         self.fourierE[name] = np.zeros(len(self.freqs), dtype=np.complex128)
         self.fourierH[name] = np.zeros(len(self.freqs), dtype=np.complex128)
@@ -100,10 +110,11 @@ class Solver:
         self.calcFourier()
         for t in range(1, self.NTime+1):
             self.nextstep(t)
-            self.save(t)            
-            if t % 10 == 0:
+            if t % self.output_iter== 0:
+                self.save(t)            
+            if t % self.check == 0:
                 print("iter="+str(t)+", ", end="")
-                if self.judgeConvergence(bPrint=True):
+                if self.judgeConvergence(cc=self.cc,bPrint=True):
                     break
 
     def nextstep(self, t):
@@ -160,7 +171,7 @@ class Solver:
 
     def calcFourier(self, eh=""):
         j = 1j
-        f = np.exp(-j*self.time*2*np.pi*self.freqs)
+        f = np.exp(-j*self.time*2*np.pi*self.freqs)*self.grid.dt
         for observe in self.observes:
             if eh != "H":
                 self.fourierE[observe["name"]] += self.E[observe["E"]]*f
